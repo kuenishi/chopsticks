@@ -23,9 +23,11 @@ public class ChopsticksScheduler implements Scheduler {
             case Protos.TaskState.TASK_KILLED_VALUE:
             case Protos.TaskState.TASK_LOST_VALUE:
                 LOG.info(status.getMessage());
+                System.err.println(status.getMessage());
                 driver.stop();
                 break;
             default:
+                System.err.println(status.getMessage());
                 LOG.error(status.getMessage());
         }
     }
@@ -33,20 +35,29 @@ public class ChopsticksScheduler implements Scheduler {
     @Override
     public void resourceOffers(SchedulerDriver driver, List<Protos.Offer> offers) {
         LOG.info("{} resource offered", offers.size());
+        System.err.println(offers.size() + " resource offered");
         if (offers.isEmpty()) {
             throw new AssertionError();
         }
 
+        Protos.Offer offer = offers.get(0);
+        //System.err.println(offer);
+
         taskID = Protos.TaskID.newBuilder().setValue("chopsticks-task-foobar").build();
         Protos.TaskInfo task = Protos.TaskInfo.newBuilder()
                 .setTaskId(taskID)
+                .setName("chopsticks-uname")
+                .setSlaveId(offer.getSlaveId())
                 .setCommand(Protos.CommandInfo.newBuilder()
                         .setShell(true)
                         .setValue("uname -a"))
                 .setContainer(
                         Protos.ContainerInfo.newBuilder().setDocker(
                                 Protos.ContainerInfo.DockerInfo.newBuilder()
-                                        .setImage("ubuntu:latest")))
+                                        .setImage("ubuntu:latest"))
+                                .setType(Protos.ContainerInfo.Type.DOCKER)
+                                .build())
+                .addAllResources(offer.getResourcesList())
                 .build();
 
         List<Protos.Offer.Operation> operations = new LinkedList<>();
@@ -59,8 +70,9 @@ public class ChopsticksScheduler implements Scheduler {
                 .build());
 
         List<Protos.OfferID> offerIds = new ArrayList<>();
-        offerIds.add(offers.get(0).getId());
+        offerIds.add(offer.getId());
 
+        LOG.info("running 1 task...");
         driver.acceptOffers(offerIds, operations, Protos.Filters.getDefaultInstance());
     }
 
@@ -80,7 +92,7 @@ public class ChopsticksScheduler implements Scheduler {
 
     @Override
     public void registered(SchedulerDriver driver, Protos.FrameworkID frameworkId, Protos.MasterInfo masterInfo) {
-
+        LOG.info("Framework registered as {}", frameworkId.getValue());
     }
 
     @Override

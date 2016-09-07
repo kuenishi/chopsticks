@@ -47,11 +47,18 @@ dependencies {
     testCompile 'junit:junit:4.12'
 }
 
+group = 'io.github.retz'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+
 jar {
     def versionText = gitVersion()
     manifest {
         attributes 'Git-Version': versionText
         attributes 'Artifact-Id': "${project.name}-${project.version}"
+        //attributes 'Main-Class' : 'io.github.retz.chopsticks.Launcher'
     }
 }
 

@@ -12,11 +12,12 @@ public class Launcher {
     public static void main(String ... args) {
 
         LOG.info("foobar");
+        System.err.println("foo");
         System.exit(exec(args));
     }
     private static int exec(String ... args) {
         Protos.FrameworkInfo frameworkInfo = Protos.FrameworkInfo.newBuilder()
-                .setUser("chopsticks")
+                .setUser("root")
                 .setName("CHOPSTICKS")
                 .setPrincipal("chopsticks")
                 .setRole("chopsticks")
@@ -24,7 +25,7 @@ public class Launcher {
 
         ChopsticksScheduler scheduler = new ChopsticksScheduler();
 
-        String master = "192.168.201.239:5050";
+        String master = "10.0.2.15:5050";
         SchedulerDriver driver = new MesosSchedulerDriver(scheduler, frameworkInfo, master);
 
         driver.start();
