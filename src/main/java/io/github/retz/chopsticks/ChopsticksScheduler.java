@@ -9,11 +9,22 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class ChopsticksScheduler implements Scheduler {
     static final Logger LOG = LoggerFactory.getLogger(ChopsticksScheduler.class);
 
     Protos.TaskID taskID;
+    List<String> command;
+    String image;
+
+    public ChopsticksScheduler(List<String> command, String image) {
+        LOG.info("Initialzing ChopstickScheduler command='{}'",
+                String.join(" ", command));
+        this.command = Objects.requireNonNull(command);
+        this.image = Objects.requireNonNull(image);
+        // TODO: check for command validity
+    }
 
     @Override
     public void statusUpdate(SchedulerDriver driver, Protos.TaskStatus status) {
@@ -41,8 +52,13 @@ public class ChopsticksScheduler implements Scheduler {
         }
 
         Protos.Offer offer = offers.get(0);
-        //System.err.println(offer);
 
+        LOG.info(offer.toString());
+
+        // GO SEE
+        // https://github.com/apache/mesos/blob/master/docs/gpu-support.md#minimal-setup-with-support-for-docker-containers
+        // https://github.com/apache/mesos/blob/master/docs/container-image.md
+        LOG.info("Image: {}", image);
         taskID = Protos.TaskID.newBuilder().setValue("chopsticks-task-foobar").build();
         Protos.TaskInfo task = Protos.TaskInfo.newBuilder()
                 .setTaskId(taskID)
@@ -50,13 +66,9 @@ public class ChopsticksScheduler implements Scheduler {
                 .setSlaveId(offer.getSlaveId())
                 .setCommand(Protos.CommandInfo.newBuilder()
                         .setShell(true)
-                        .setValue("uname -a"))
-                .setContainer(
-                        Protos.ContainerInfo.newBuilder().setDocker(
-                                Protos.ContainerInfo.DockerInfo.newBuilder()
-                                        .setImage("ubuntu:latest"))
-                                .setType(Protos.ContainerInfo.Type.DOCKER)
-                                .build())
+                        .setValue(String.join(" ", command)))
+                //.setContainer(getDocker("ubuntu:latest"))
+                .setContainer(getMesos(image))
                 .addAllResources(offer.getResourcesList())
                 .build();
 
@@ -74,6 +86,28 @@ public class ChopsticksScheduler implements Scheduler {
 
         LOG.info("running 1 task...");
         driver.acceptOffers(offerIds, operations, Protos.Filters.getDefaultInstance());
+    }
+
+    private Protos.ContainerInfo getDocker(String image) {
+        return Protos.ContainerInfo.newBuilder().setDocker(
+                Protos.ContainerInfo.DockerInfo.newBuilder()
+                        .setImage(image))
+                .setType(Protos.ContainerInfo.Type.DOCKER)
+                .build();
+    }
+
+    private Protos.ContainerInfo getMesos(String image) {
+        LOG.info("MesosInfo => DOCKER, {}", image);
+        Protos.ContainerInfo ci = Protos.ContainerInfo.newBuilder()
+                .setMesos(Protos.ContainerInfo.MesosInfo.newBuilder().setImage(
+                        Protos.Image.newBuilder()
+                                .setType(Protos.Image.Type.DOCKER)
+                                .setDocker(Protos.Image.Docker.newBuilder().setName(image))
+                ))
+                .setType(Protos.ContainerInfo.Type.MESOS)
+                .build();
+        LOG.info(ci.toString());
+        return ci;
     }
 
     @Override
